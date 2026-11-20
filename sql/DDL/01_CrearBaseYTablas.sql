@@ -1,0 +1,72 @@
+IF DB_ID('PedidosOnlineDB') IS NULL
+    CREATE DATABASE PedidosOnlineDB;
+GO
+
+USE PedidosOnlineDB;
+GO
+
+CREATE TABLE Clientes (
+    ClienteID INT IDENTITY(1,1) PRIMARY KEY,
+    NombreCompleto NVARCHAR(120) NOT NULL,
+    Correo VARCHAR(100) NOT NULL UNIQUE,
+    Telefono VARCHAR(20) NULL,
+    DireccionEnvio NVARCHAR(250) NOT NULL,
+    FechaRegistro DATETIME2 NOT NULL DEFAULT SYSDATETIME()
+);
+
+CREATE TABLE Categorias (
+    CategoriaID INT IDENTITY(1,1) PRIMARY KEY,
+    NombreCategoria NVARCHAR(80) NOT NULL UNIQUE,
+    Activo BIT NOT NULL DEFAULT 1
+);
+
+CREATE TABLE Productos (
+    ProductoID INT IDENTITY(1,1) PRIMARY KEY,
+    CategoriaID INT NOT NULL FOREIGN KEY REFERENCES Categorias(CategoriaID),
+    SKU VARCHAR(30) NOT NULL UNIQUE,
+    NombreProducto NVARCHAR(150) NOT NULL,
+    PrecioUnitario DECIMAL(10,2) NOT NULL CHECK (PrecioUnitario > 0),
+    Stock INT NOT NULL CHECK (Stock >= 0)
+);
+
+CREATE TABLE EstadosPedido (
+    EstadoID TINYINT IDENTITY(1,1) PRIMARY KEY,
+    NombreEstado VARCHAR(30) NOT NULL UNIQUE
+);
+
+CREATE TABLE Pedidos (
+    PedidoID INT IDENTITY(1,1) PRIMARY KEY,
+    ClienteID INT NOT NULL FOREIGN KEY REFERENCES Clientes(ClienteID),
+    EstadoID TINYINT NOT NULL FOREIGN KEY REFERENCES EstadosPedido(EstadoID),
+    FechaPedido DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    Subtotal DECIMAL(12,2) NOT NULL DEFAULT 0,
+    Impuesto DECIMAL(12,2) NOT NULL DEFAULT 0,
+    Total DECIMAL(12,2) NOT NULL DEFAULT 0
+);
+
+CREATE TABLE DetallePedido (
+    DetalleID INT IDENTITY(1,1) PRIMARY KEY,
+    PedidoID INT NOT NULL FOREIGN KEY REFERENCES Pedidos(PedidoID),
+    ProductoID INT NOT NULL FOREIGN KEY REFERENCES Productos(ProductoID),
+    Cantidad INT NOT NULL CHECK (Cantidad > 0),
+    PrecioHistorico DECIMAL(10,2) NOT NULL CHECK (PrecioHistorico > 0)
+);
+
+CREATE TABLE Pagos (
+    PagoID INT IDENTITY(1,1) PRIMARY KEY,
+    PedidoID INT NOT NULL FOREIGN KEY REFERENCES Pedidos(PedidoID),
+    MetodoPago VARCHAR(30) NOT NULL,
+    MontoPagado DECIMAL(12,2) NOT NULL CHECK (MontoPagado > 0),
+    FechaPago DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    ReferenciaTransaccion VARCHAR(60) NOT NULL UNIQUE
+);
+
+CREATE TABLE AuditoriaPedidos (
+    AuditoriaID INT IDENTITY(1,1) PRIMARY KEY,
+    PedidoID INT NOT NULL,
+    EstadoAnterior TINYINT NULL,
+    EstadoNuevo TINYINT NOT NULL,
+    UsuarioBD SYSNAME NOT NULL DEFAULT SUSER_SNAME(),
+    FechaCambio DATETIME2 NOT NULL DEFAULT SYSDATETIME()
+);
+GO
